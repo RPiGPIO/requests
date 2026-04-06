@@ -1,0 +1,148 @@
+# PRACTICAL 1: BOOLEAN RETRIEVAL MODEL
+# Libraries: no external libraries
+plays = {
+    "Anthony and Cleopatra": "Anthony is there, Brutus is Caeser is with Cleopatra mercy worser.",
+    "Julius Ceaser": "Anthony is there, Brutus is Caeser is but Calpurnia is.",
+    "The Tempest": "mercy worser",
+    "Hamlet": "Caeser and Brutus are present with mercy and worser",
+    "Othello": "Caeser is present with mercy and worser",
+    "Macbeth": "Anthony is there, Caeser, mercy."
+}
+words = ["Anthony","Brutus","Caeser","Calpurnia","Cleopatra","mercy","worser"]
+
+# PRACTICAL 2: RECURSIVE + DP + WEIGHTED + WORD EDIT DISTANCE
+# Libraries: no external libraries
+def edit_recursive(s1, s2, m, n):
+    if m == 0: return n
+    if n == 0: return m
+    if s1[m-1] == s2[n-1]:
+        return edit_recursive(s1, s2, m-1, n-1)
+    return 1 + min(edit_recursive(s1,s2,m,n-1), edit_recursive(s1,s2,m-1,n), edit_recursive(s1,s2,m-1,n-1))
+
+def edit_dp(s1, s2):
+    m, n = len(s1), len(s2)
+    dp = [[0]*(n+1) for _ in range(m+1)]
+    for i in range(m+1): dp[i][0] = i
+    for j in range(n+1): dp[0][j] = j
+    for i in range(1,m+1):
+        for j in range(1,n+1):
+            dp[i][j] = dp[i-1][j-1] if s1[i-1]==s2[j-1] else 1+min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1])
+    return dp[m][n]
+
+def weighted_edit_distance(s1, s2):
+    m, n = len(s1), len(s2)
+    ins, dele, rep = 1, 2, 3
+    dp = [[0]*(n+1) for _ in range(m+1)]
+    for i in range(m+1): dp[i][0] = i*dele
+    for j in range(n+1): dp[0][j] = j*ins
+    for i in range(1,m+1):
+        for j in range(1,n+1):
+            dp[i][j] = dp[i-1][j-1] if s1[i-1]==s2[j-1] else min(dp[i-1][j]+dele, dp[i][j-1]+ins, dp[i-1][j-1]+rep)
+    return dp[m][n]
+
+def word_edit(s1, s2):
+    w1, w2 = s1.split(), s2.split()
+    m, n = len(w1), len(w2)
+    dp = [[0]*(n+1) for _ in range(m+1)]
+    for i in range(m+1): dp[i][0] = i
+    for j in range(n+1): dp[0][j] = j
+    for i in range(1,m+1):
+        for j in range(1,n+1):
+            dp[i][j] = dp[i-1][j-1] if w1[i-1]==w2[j-1] else 1+min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1])
+    return dp[m][n]
+
+# PRACTICAL 3: SOUNDEX
+def soundex_simple(word):
+    codes = {"BFPV":"1","CGJKQSXZ":"2","DT":"3","L":"4","MN":"5","R":"6"}
+    word = word.upper()
+    result, prev = word[0], ""
+    for char in word[1:]:
+        code = ""
+        for key in codes:
+            if char in key:
+                code = codes[key]
+                break
+        if code != prev and code:
+            result += code
+        prev = code
+    return (result + "000")[:4]
+
+# PRACTICAL 4: NGRAM + JACCARD
+def ngrams(text, n):
+    words = text.lower().split()
+    return [tuple(words[i:i+n]) for i in range(len(words)-n+1)]
+
+def jaccard_similarity(t1, t2, n):
+    A, B = set(ngrams(t1,n)), set(ngrams(t2,n))
+    return len(A&B)/len(A|B)
+
+# PRACTICAL 5: PAGE RANK
+graph = {"A":["B","C"], "B":["C"], "C":["A"]}
+
+# PRACTICAL 6: DOCUMENT SIMILARITY
+# Libraries: nltk, numpy
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import numpy as np
+
+def process(text):
+    words = word_tokenize(text.lower())
+    words = [w for w in words if w.isalpha()]
+    words = [w for w in words if w not in stopwords.words('english')]
+    freq = {}
+    for w in words:
+        freq[w] = freq.get(w, 0) + 1
+    return freq
+
+def similarity(d1, d2):
+    all_words = list(set(d1) | set(d2))
+    v1 = [d1.get(w, 0) for w in all_words]
+    v2 = [d2.get(w, 0) for w in all_words]
+    return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+# PRACTICAL 7: STOPWORDS + TOKENIZATION
+# Libraries: nltk
+def remove_stopwords(text):
+    stop_words = set(stopwords.words('english'))
+    words = word_tokenize(text)
+    return [w for w in words if w.lower() not in stop_words]
+
+# PRACTICAL 8: WEB CRAWLER
+# Libraries: requests, bs4, re
+import requests, re
+from bs4 import BeautifulSoup
+
+def crawler(url, word):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    for tag in soup(["script", "style"]):
+        tag.extract()
+    text = soup.get_text()
+    matches = re.findall(r'\b' + word + r'\b', text, re.IGNORECASE)
+    return len(matches)
+
+# PRACTICAL 9: INVERTED INDEX
+# Libraries: string
+import string
+def preprocess(text):
+    return text.lower().translate(str.maketrans("", "", string.punctuation)).split()
+
+def build_index(docs):
+    index = {}
+    for doc_id, text in docs.items():
+        for word in preprocess(text):
+            index.setdefault(word, set()).add(doc_id)
+    return index
+
+# PRACTICAL 10: XML PARSING TO CSV
+# Libraries: requests, xml.etree.ElementTree, csv
+import xml.etree.ElementTree as ET
+import csv
+
+def save_csv(data, filename):
+    fields = ["title", "link", "description", "pubDate"]
+    with open(filename, "w", newline='', encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(data)
